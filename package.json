@@ -1,0 +1,14 @@
+{
+  "name": "musicfinder",
+  "version": "0.1.0",
+  "description": "Find music from reddit",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Johan Burke",
+  "dependencies": {
+    "electron": "^2.0.6",
+    "semantic-ui": "^2.3.3"
+  }
+}
