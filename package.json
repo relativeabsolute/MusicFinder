@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "description": "Find music from reddit",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/relativeabsolute/MusicFinder.git"
+  },
+  "license": "MIT",
   "scripts": {
     "start": "electron ."
   },
   "author": "Johan Burke",
   "dependencies": {
-    "electron": "^2.0.6",
+    "electron": "^2.0.8",
     "semantic-ui": "^2.3.3"
   }
 }

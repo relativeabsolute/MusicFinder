@@ -13,7 +13,7 @@ var stateString = ''
         return result
     }
 
-    function getAccessToken(code) {
+    function getAccessToken(code, successCallback) {
         console.log('Attempting to get access token')
         if (code) {
             console.log('Getting access token')
@@ -41,6 +41,7 @@ var stateString = ''
                 console.log('Response received')
                 response.on('data', (chunk) => {
                     console.log(`Chunk received: ${chunk}`)
+                    successCallback(chunk)
                 })
                 response.on('error', (error) => {
                     console.log(`ERROR: ${JSON.stringify(error)}`)
@@ -87,7 +88,10 @@ var stateString = ''
         //})
 
         win.webContents.on('did-get-redirect-request', (event, oldUrl, newUrl) => {
-            getAccessToken(handleCallback(newUrl))
+            getAccessToken(handleCallback(newUrl), (chunk) => {
+                // TODO: handle the access token somehow
+                win.loadFile("index.html")
+            })
         })
 
         win.on('closed', () => {
