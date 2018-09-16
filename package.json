@@ -14,6 +14,7 @@
   "author": "Johan Burke",
   "dependencies": {
     "electron": "^2.0.8",
-    "semantic-ui": "^2.3.3"
+    "semantic-ui": "^2.3.3",
+    "jquery": "^3.3.1"
   }
 }

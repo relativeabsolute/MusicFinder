@@ -4,14 +4,24 @@
     <meta charset="UTF-8">
     <title>Hello World!</title>
     <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
-    <script
-            src="https://code.jquery.com/jquery-3.1.1.min.js"
-            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-            crossorigin="anonymous"></script>
+    <script>window.$ = window.jQuery = require('jquery');</script>
     <script src="semantic/dist/semantic.min.js"></script>
+    <script src="js/musicfinder.index.jquery.js"></script>
 </head>
 <body>
-<h1>Hello World!</h1>
+    <div class="ui visible sidebar vertical menu" id="subredditList">
+        <div class="ui fluid search" id="searchSubreddits">
+            <div class="ui fluid action input">
+                <input class="prompt" placeholder="Add a subreddit..." type="text">
+                <button class="ui button" id="addSubredditButton">Add</button>
+            </div>
+            <div class="results">
+            </div>
+        </div>
+    </div>
+<div class="pusher">
+
+</div>
 
 </body>
 </html>
