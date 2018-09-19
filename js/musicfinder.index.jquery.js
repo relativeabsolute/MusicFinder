@@ -1,4 +1,5 @@
 let subreddits = [];
+let toggleState = 0;
 
 function readSubreddits() {
     let tempSubreddits = JSON.parse(window.localStorage.getItem('subreddits'));
@@ -11,7 +12,8 @@ function readSubreddits() {
 
 function addSubreddit(name) {
     subreddits.push(name);
-    $('#subredditList').append("<a class='item'>" + name + "</a>");
+    let menuItem = "<a class='item' id='" + name + "'>" + name + "</a>"
+    $('#subredditList').append(menuItem);
 }
 
 function writeSubreddits() {
@@ -20,6 +22,34 @@ function writeSubreddits() {
         console.log(subreddits[index]);
     }
     window.localStorage.setItem('subreddits', JSON.stringify(subreddits));
+}
+
+function subredditMenuItemHoverIn(e) {
+    // TODO: show popup for merging or removing reddits from list
+}
+
+function subredditMenuItemHoverOut(e) {
+
+}
+
+function loadSubredditData(subredditData) {
+    // TODO: filter for only youtube and other streaming sites
+    $.each(subredditData.data.children, function(index, item) {
+        let newContent = "<div class='ui segment'><a href='" + item.data.url + "'>" + item.data.title + "</a></div>";
+        console.log('new content' + newContent);
+        $('#contentPane').append(newContent);
+        console.log('item' + item['data']['url']);
+        //$('#contentPane').append("<div class='item'>" + )
+    });
+}
+
+function subredditMenuItemClick(e) {
+    e.preventDefault();
+    let subredditName = e.target.id;
+    // TODO: call subreddit api and load stuff
+    let targetURL = 'https://www.reddit.com/r/' + subredditName + '.json';
+    // TODO: set loading indicator
+    $.get(targetURL, loadSubredditData);
 }
 
 $(function() {
@@ -50,5 +80,17 @@ $(function() {
         },
         minCharacters: 2
     });
+
+    $('#toggleSidebar').click(function() {
+        const elements = ["<div id='toggleSidebarContent'><i class='angle left icon'></i>Hide Subreddits</a></div>",
+            "<div id='toggleSidebarContent'><i class='angle right icon'></i>Show Subreddits</div>"];
+        $('#subredditList').sidebar('toggle');
+        toggleState = 1 - toggleState;
+        $('#toggleSidebarContent').replaceWith(elements[toggleState]);
+    })
+    $('#subredditList').sidebar({context: $('.bottom.segment')});
+    $('#subredditList > .item')
+        .hover(subredditMenuItemHoverIn, subredditMenuItemHoverOut)
+        .click(subredditMenuItemClick);
 });
 
