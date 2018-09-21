@@ -10,7 +10,9 @@
 </head>
 <body>
 <div class="ui top attached menu">
-    <a class="item" id="toggleSidebar"><div id="toggleSidebarContent"><i class="angle left icon"></i>Hide Subreddits</div></a>
+    <a class="item" id="toggleSidebar">
+        <div id="toggleSidebarContent"><i class="angle left icon"></i>Hide Subreddits</div>
+    </a>
     <div class="ui dropdown item" id="sortByDropdown">
         Sort by...
         <div class="menu">
@@ -21,7 +23,7 @@
     </div>
 </div>
 <div class="ui bottom attached segment">
-    <div class="ui visible sidebar vertical menu" id="subredditList">
+    <div class="ui left visible sidebar vertical menu" id="subredditList">
         <div class="ui fluid search" id="searchSubreddits">
             <div class="ui fluid action input">
                 <input class="prompt" placeholder="Add a subreddit..." type="text">
@@ -31,12 +33,17 @@
             </div>
         </div>
     </div>
-<div class="pusher" id="sidebarPusher">
+    <div class="ui right sidebar vertical menu" id="contentPlayer">
+        <div class="ui embed">
 
-    <div class="ui segments" id="contentPane">
-
+        </div>
     </div>
-</div>
+    <div class="pusher" id="sidebarPusher">
+
+        <div class="ui segments" id="contentPane">
+
+        </div>
+    </div>
 </div>
 
 
