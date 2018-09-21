@@ -1,26 +1,22 @@
 let subreddits = [];
-let toggleState = 0;
 
 function readSubreddits() {
     let tempSubreddits = JSON.parse(window.localStorage.getItem('subreddits'));
-    console.log('subreddits:');
-    for (var index in tempSubreddits) {
-        console.log(tempSubreddits[index]);
+    for (const index in tempSubreddits) {
         addSubreddit(tempSubreddits[index]);
     }
 }
 
 function addSubreddit(name) {
     subreddits.push(name);
-    let menuItem = "<a class='item' id='" + name + "'>" + name + "</a>"
+    const removeID = "remove" + name;
+    const removeButton = `<button class='ui button' id='${removeID}'>Remove</button>`;
+    const menuItem = `<a class='item' id='${name}' data-html="${removeButton}">${name}</a>`;
     $('#subredditList').append(menuItem);
+    $(`#subredditList > #${name}`).popup({hoverable:true});
 }
 
 function writeSubreddits() {
-    console.log('subreddits');
-    for (var index in subreddits) {
-        console.log(subreddits[index]);
-    }
     window.localStorage.setItem('subreddits', JSON.stringify(subreddits));
 }
 
@@ -36,9 +32,7 @@ function loadSubredditData(subredditData) {
     // TODO: filter for only youtube and other streaming sites
     $.each(subredditData.data.children, function(index, item) {
         let newContent = "<div class='ui segment'><a href='" + item.data.url + "'>" + item.data.title + "</a></div>";
-        console.log('new content' + newContent);
         $('#contentPane').append(newContent);
-        console.log('item' + item['data']['url']);
         //$('#contentPane').append("<div class='item'>" + )
     });
 }
@@ -46,16 +40,20 @@ function loadSubredditData(subredditData) {
 function subredditMenuItemClick(e) {
     e.preventDefault();
     let subredditName = e.target.id;
-    // TODO: call subreddit api and load stuff
     let targetURL = 'https://www.reddit.com/r/' + subredditName + '.json';
     // TODO: set loading indicator
     $.get(targetURL, loadSubredditData);
 }
 
-$(function() {
-    readSubreddits();
+function subredditRemoveClick(e) {
+    const id = e.target.id.match(/remove(\w+)/)[1];
+    const index = subreddits.indexOf(id);
+    subreddits.splice(index, 1);
+    $(`#${id}`).remove();
+    writeSubreddits();
+}
 
-    // TODO: use local storage
+function addSubredditButtonHandlers() {
     $('#addSubredditButton').click(function(e) {
         let search = $('#searchSubreddits');
         let val = search.search('get value');
@@ -63,7 +61,9 @@ $(function() {
         search.search('set value', '');
         writeSubreddits();
     });
+}
 
+function searchSubredditHandlers() {
     // TODO: filter subreddits that have already been added
     $('#searchSubreddits').search({
         apiSettings: {
@@ -80,17 +80,49 @@ $(function() {
         },
         minCharacters: 2
     });
+}
 
-    $('#toggleSidebar').click(function() {
-        const elements = ["<div id='toggleSidebarContent'><i class='angle left icon'></i>Hide Subreddits</a></div>",
+function updateSidebarButton() {
+    const elements = ["<div id='toggleSidebarContent'><i class='angle left icon'></i>Hide Subreddits</a></div>",
             "<div id='toggleSidebarContent'><i class='angle right icon'></i>Show Subreddits</div>"];
+    const sidebarVisible = $('#subredditList').sidebar('is visible');
+    $('#toggleSidebarContent').replaceWith(elements[+ sidebarVisible]);
+}
+
+function toggleSidebarHandlers() {
+    $('#toggleSidebar').click(function() {
         $('#subredditList').sidebar('toggle');
-        toggleState = 1 - toggleState;
-        $('#toggleSidebarContent').replaceWith(elements[toggleState]);
-    })
-    $('#subredditList').sidebar({context: $('.bottom.segment')});
-    $('#subredditList > .item')
-        .hover(subredditMenuItemHoverIn, subredditMenuItemHoverOut)
-        .click(subredditMenuItemClick);
+    });
+}
+
+function topMenuHandlers() {
+    toggleSidebarHandlers();
+
+    $('#sortByDropdown').dropdown();
+}
+
+function subredditListHandlers() {
+    let sidebar = $('#subredditList');
+    sidebar.sidebar({context: $('.bottom.segment'),
+        onVisible : updateSidebarButton,
+        onHide : updateSidebarButton,
+        dimPage : false
+    });
+    // we need to use a delegated event handler since the element being attached to needs to
+    // exist already (which must be the document
+    $(document).on('click', '[id^=remove]', subredditRemoveClick);
+    $(document).on('click', '#subredditList > .item', subredditMenuItemClick);
+}
+
+$(function() {
+    readSubreddits();
+
+    addSubredditButtonHandlers();
+
+    searchSubredditHandlers();
+
+    topMenuHandlers();
+
+    subredditListHandlers();
 });
 

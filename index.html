@@ -11,6 +11,14 @@
 <body>
 <div class="ui top attached menu">
     <a class="item" id="toggleSidebar"><div id="toggleSidebarContent"><i class="angle left icon"></i>Hide Subreddits</div></a>
+    <div class="ui dropdown item" id="sortByDropdown">
+        Sort by...
+        <div class="menu">
+            <div class="item">
+                Title
+            </div>
+        </div>
+    </div>
 </div>
 <div class="ui bottom attached segment">
     <div class="ui visible sidebar vertical menu" id="subredditList">
@@ -23,7 +31,7 @@
             </div>
         </div>
     </div>
-<div class="pusher">
+<div class="pusher" id="sidebarPusher">
 
     <div class="ui segments" id="contentPane">
 
