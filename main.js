@@ -73,7 +73,7 @@ function handleCallback(callbackUrl) {
 }
 
 function createSimple() {
-    let win = new BrowserWindow({width: 800, height: 600, webPreferences: {webSecurity: false}});
+    let win = new BrowserWindow({width: 800, height: 600, webPreferences : {webSecurity:false}});
 
     win.loadFile("index.html");
     //win.webContents.toggleDevTools();

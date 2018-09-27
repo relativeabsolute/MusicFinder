@@ -33,20 +33,24 @@ function loadSubredditData(subredditData) {
     $.each(subredditData.data.children, function (index, item) {
         // TODO: setup media player interface
         if (item.data.domain === 'youtu.be') {
+            const youtubeID = item.data.url.match(/youtu.be\/(\w+)/)[1];
             if (first) {
                 // TODO: autoplay
                 first = false;
-                const youtubeID = item.data.url.match(/youtu.be\/(\w+)/)[1];
-                $('.ui.embed').embed({
-                    url : `https://www.youtube.com/embed/${youtubeID}`
-                });
+                /*$('.ui.embed').embed({
+                    url : `https://www.youtube.com/embed/${youtubeID}`, api : true,
+                    autoplay : false
+                });*/
+                setCurrentVideo(youtubeID);
             }
-            const newContent = `<div class='ui segment'><a href='${item.data.url}'>${item.data.title}</a></div>`;
+            const newContent = `<div class='ui segment'><a id='${youtubeID}'>${item.data.title}</a></div>`;
             contentPane.append(newContent);
         }
     });
     // TODO: set up buttons on top menu bar to interact with content player
-    $('.sidebar').sidebar('toggle');
+    // hide subreddits sidebar and show content sidebar
+    $('#subredditList').sidebar('hide');
+    $('#contentPlayer').sidebar('show');
 }
 
 function subredditMenuItemClick(e) {
@@ -75,6 +79,17 @@ function addSubredditButtonHandlers() {
     });
 }
 
+function playLink(e) {
+    e.preventDefault();
+    console.log('play item clicke');
+    // TODO: it seems that youtube player API doesn't play too well with semantic ui
+    /*$('.ui.embed').embed({
+        url : `https://www.youtube.com/embed/${e.target.id}`, api : true, autoplay: false
+    });*/
+    setCurrentVideo(e.target.id);
+    $('#contentPlayer').sidebar('show');
+}
+
 function searchSubredditHandlers() {
     $('#searchSubreddits').search({
         apiSettings: {
@@ -96,25 +111,35 @@ function searchSubredditHandlers() {
 }
 
 function updateSidebarButton() {
-    const elements = ["<div id='toggleSidebarContent'><i class='angle left icon'></i>Hide Subreddits</a></div>",
-        "<div id='toggleSidebarContent'><i class='angle right icon'></i>Show Subreddits</div>"];
+    const elements = ["<i class='angle left icon'></i>Hide Subreddits</a>",
+        "<i class='angle right icon'></i>Show Subreddits"];
     const sidebarVisible = $('#subredditList').sidebar('is visible');
-    $('#toggleSidebarContent').replaceWith(elements[+sidebarVisible]);
+    $('#toggleSidebar').html(elements[+sidebarVisible]);
+}
+
+function togglePlayPauseClick() {
+    const newContent = ["Pause", "Play"];
+    let state = togglePlayPause();
+    $('#togglePlayPauseButton').html(newContent[state]);
 }
 
 // event handlers for the menu across the top
 function topMenuHandlers() {
     $('#toggleSidebar').click(function () {
-        $('.sidebar').sidebar('toggle');
+        $('#subredditList').sidebar('toggle');
     });
 
     $('#sortByDropdown').dropdown();
+
+    $('#togglePlayPauseButton').click(togglePlayPauseClick);
 }
 
 function subredditListHandlers() {
     let sidebar = $('#subredditList');
     sidebar.sidebar({
         context: $('.bottom.segment'),
+        exclusive: false,
+        closable: false,
         onVisible: updateSidebarButton,
         onHide: updateSidebarButton,
         dimPage: false,
@@ -124,6 +149,7 @@ function subredditListHandlers() {
     // exist already (which must be the document)
     $(document).on('click', '[id^=remove]', subredditRemoveClick);
     $(document).on('click', '#subredditList > .item', subredditMenuItemClick);
+    $(document).on('click', '.ui.segment > a', playLink);
 }
 
 function sidebarHandlers() {
@@ -131,7 +157,9 @@ function sidebarHandlers() {
 
     $('#contentPlayer').sidebar({
         context: $('.bottom.segment'),
+        exclusive: false,
         dimPage: false,
+        closable: false,
         transition: 'overlay'
     });
 }
@@ -140,6 +168,8 @@ function sidebarHandlers() {
 // attach all the event handlers and do whatever else needs to be done on startup
 $(function () {
     readSubreddits();
+
+    initYoutubeAPI();
 
     addSubredditButtonHandlers();
 
