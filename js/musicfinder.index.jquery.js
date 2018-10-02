@@ -25,23 +25,25 @@ function writeSubreddits() {
     window.localStorage.setItem('subreddits', JSON.stringify(subreddits));
 }
 
+let subredditContent = {};
 function loadSubredditData(subredditData) {
     // TODO: filter for only youtube and other streaming sites
     let contentPane = $('#contentPane');
+    subredditContent = {};
     contentPane.empty();
     let first = true;
     $.each(subredditData.data.children, function (index, item) {
         // TODO: setup media player interface
         if (item.data.domain === 'youtu.be') {
             const youtubeID = item.data.url.match(/youtu.be\/(\w+)/)[1];
+            subredditContent[youtubeID] = {};
+            subredditContent[youtubeID].postTitle = item.data.title;
+            subredditContent[youtubeID].author = item.data.author;
+            subredditContent[youtubeID].score = item.data.score;
             if (first) {
                 // TODO: autoplay
                 first = false;
-                /*$('.ui.embed').embed({
-                    url : `https://www.youtube.com/embed/${youtubeID}`, api : true,
-                    autoplay : false
-                });*/
-                setCurrentVideo(youtubeID);
+                playItem(youtubeID);
             }
             const newContent = `<div class='ui segment'><a id='${youtubeID}'>${item.data.title}</a></div>`;
             contentPane.append(newContent);
@@ -79,14 +81,16 @@ function addSubredditButtonHandlers() {
     });
 }
 
+function playItem(youtubeID) {
+    setCurrentVideo(youtubeID);
+    $('#postTitle').html(`Post Title: ${subredditContent[youtubeID].postTitle}`);
+    $('#postAuthor').html(`Posted by: /u/${subredditContent[youtubeID].author}`);
+    $('#postScore').html(`Post score: ${subredditContent[youtubeID].score}`)
+}
+
 function playLink(e) {
     e.preventDefault();
-    console.log('play item clicke');
-    // TODO: it seems that youtube player API doesn't play too well with semantic ui
-    /*$('.ui.embed').embed({
-        url : `https://www.youtube.com/embed/${e.target.id}`, api : true, autoplay: false
-    });*/
-    setCurrentVideo(e.target.id);
+    playItem(e.target.id);
     $('#contentPlayer').sidebar('show');
 }
 
@@ -155,6 +159,7 @@ function subredditListHandlers() {
 function sidebarHandlers() {
     subredditListHandlers();
 
+    // TODO: make sidebar wide enough for whole youtube video
     $('#contentPlayer').sidebar({
         context: $('.bottom.segment'),
         exclusive: false,
