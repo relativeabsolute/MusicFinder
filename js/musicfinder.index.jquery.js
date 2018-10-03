@@ -25,6 +25,14 @@ function writeSubreddits() {
     window.localStorage.setItem('subreddits', JSON.stringify(subreddits));
 }
 
+// returns object containing title and artist
+function getSongInfo(postTitle) {
+    // TODO: use named capture groups
+    const array = postTitle.match(/(?:\[.+])?(?:\(.+\))?(.+)-(.+(?=[\w\d]$|(\[.+]|\(.+\))))/)
+    console.log(array);
+    return {songTitle: array[1].trim(), songArtist: array[2].trim(), songGenre: array[3].trim()};
+}
+
 let subredditContent = {};
 function loadSubredditData(subredditData) {
     // TODO: filter for only youtube and other streaming sites
@@ -38,6 +46,10 @@ function loadSubredditData(subredditData) {
             const youtubeID = item.data.url.match(/youtu.be\/(\w+)/)[1];
             subredditContent[youtubeID] = {};
             subredditContent[youtubeID].postTitle = item.data.title;
+            let songInfo = getSongInfo(subredditContent[youtubeID].postTitle);
+            subredditContent[youtubeID].songTitle = songInfo.songTitle;
+            subredditContent[youtubeID].songArtist = songInfo.songArtist;
+            subredditContent[youtubeID].songGenre = songInfo.songGenre;
             subredditContent[youtubeID].author = item.data.author;
             subredditContent[youtubeID].score = item.data.score;
             if (first) {
@@ -85,7 +97,11 @@ function playItem(youtubeID) {
     setCurrentVideo(youtubeID);
     $('#postTitle').html(`Post Title: ${subredditContent[youtubeID].postTitle}`);
     $('#postAuthor').html(`Posted by: /u/${subredditContent[youtubeID].author}`);
-    $('#postScore').html(`Post score: ${subredditContent[youtubeID].score}`)
+    $('#postScore').html(`Post score: ${subredditContent[youtubeID].score}`);
+    // TODO: add collapsible for song info
+    $('#songArtist').html(`Artist: ${subredditContent[youtubeID].songArtist}`);
+    $('#songTitle').html(`Title: ${subredditContent[youtubeID].songTitle}`);
+    $('#songGenre').html(`Genre: ${subredditContent[youtubeID].songGenre}`);
 }
 
 function playLink(e) {
