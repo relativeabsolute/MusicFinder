@@ -1,4 +1,9 @@
 let player = null;
+let currentSongTitle = '';
+// number of videos to try before giving up after an error
+let currentSearchDepth = 0;
+const maxSearchDepth = 3;
+let nextSongCallback = null;
 
 function initYoutubeAPI() {
     let asyncScript = document.createElement('script');
@@ -31,15 +36,30 @@ function onError(event) {
     // not disable embedding, and more popular sources will typically have less popular/user uploaded
     // alternatives
     // same approach should work if the video has been removed (code 100)
-    const redirectErrorCodes = [100, 101, 150]
+    const redirectErrorCodes = [100, 101, 150];
     if (redirectErrorCodes.includes(event.data)) {
         console.log('content owner requested video not be embedded');
         // TODO: handle search
+        if (currentSearchDepth < maxSearchDepth) {
+            currentSearchDepth++;
+            tryVideoList();
+        } else {
+            currentSearchDepth = 0;
+        }
+        // TODO: handle removing video if good one can't be found
     }
     // other error types should never occur
 }
 
-function setCurrentVideo(newID) {
+// called when an error occurs (video owner requests video not be embedded, edtc)
+function tryVideoList() {
+    player.loadPlaylist({list: currentSongTitle,
+        listType: 'search',
+        index: currentSearchDepth});
+}
+
+function setCurrentVideo(newID, title) {
+    currentSongTitle = title;
     player.loadVideoById(newID);
 }
 
@@ -62,7 +82,20 @@ function onPlayerReady(event) {
     console.log('onPlayerReady called');
 }
 
+const playerStateNames = ['ended', 'playing', 'paused', 'buffering'];
 function onPlayerStateChange(event) {
     // TODO: play next video in list when video ends
-
+    console.log('player state changed');
+    console.log(`New state = ${event.data}`);
+    switch (event.data) {
+        case YT.PlayerState.PLAYING:
+            console.log('Now playing');
+            currentSearchDepth = 0;
+            break;
+        case YT.PlayerState.ENDED:
+            if (nextSongCallback != null) {
+                nextSongCallback();
+            }
+            break;
+    }
 }

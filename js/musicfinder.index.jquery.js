@@ -1,4 +1,5 @@
 let subreddits = [];
+let currentSongIndex = 0;
 
 function readSubreddits() {
     let tempSubreddits = JSON.parse(window.localStorage.getItem('subreddits'));
@@ -28,39 +29,61 @@ function writeSubreddits() {
 // returns object containing title and artist
 function getSongInfo(postTitle) {
     // TODO: use named capture groups
-    const array = postTitle.match(/(?:\[.+])?(?:\(.+\))?(.+)-(.+(?=[\w\d]$|(\[.+]|\(.+\))))/)
+    const array = postTitle.match(/([^\[(]+)-([^\[(]+)(\[.+])?(\(.+\))?/);
+
     console.log(array);
-    return {songTitle: array[1].trim(), songArtist: array[2].trim(), songGenre: array[3].trim()};
+    let resultObj = {};
+    resultObj.songTitle = array[1].trim();
+    resultObj.songArtist = array[2].trim();
+    if (array[3] != null) {
+        resultObj.songGenre = array[3].trim();
+    } else {
+        resultObj.songGenre = '';
+    }
+    return resultObj;
 }
 
-let subredditContent = {};
+let idToIndex = {};
+let subredditContent = [];
 function loadSubredditData(subredditData) {
     // TODO: filter for only youtube and other streaming sites
     let contentPane = $('#contentPane');
-    subredditContent = {};
     contentPane.empty();
     let first = true;
+    let counter = 0;
     $.each(subredditData.data.children, function (index, item) {
         // TODO: setup media player interface
         if (item.data.domain === 'youtu.be') {
             const youtubeID = item.data.url.match(/youtu.be\/(\w+)/)[1];
-            subredditContent[youtubeID] = {};
-            subredditContent[youtubeID].postTitle = item.data.title;
-            let songInfo = getSongInfo(subredditContent[youtubeID].postTitle);
-            subredditContent[youtubeID].songTitle = songInfo.songTitle;
-            subredditContent[youtubeID].songArtist = songInfo.songArtist;
-            subredditContent[youtubeID].songGenre = songInfo.songGenre;
-            subredditContent[youtubeID].author = item.data.author;
-            subredditContent[youtubeID].score = item.data.score;
+            idToIndex[youtubeID] = counter;
+            let newObject = {};
+            newObject.postTitle = item.data.title;
+            let songInfo = getSongInfo(newObject.postTitle);
+            newObject.songTitle = songInfo.songTitle;
+            newObject.songArtist = songInfo.songArtist;
+            newObject.songGenre = songInfo.songGenre;
+            newObject.author = item.data.author;
+            newObject.score = item.data.score;
+            newObject.youtubeID = youtubeID;
+            subredditContent.push(newObject);
+
+            console.log(`index: ${counter}`);
+            console.log(`Keys: ${idToIndex}`);
+
+            console.log(`Data: ${subredditContent}`);
             if (first) {
                 // TODO: autoplay
                 first = false;
+                currentSongIndex = counter;
                 playItem(youtubeID);
             }
             const newContent = `<div class='ui segment'><a id='${youtubeID}'>${item.data.title}</a></div>`;
             contentPane.append(newContent);
+            counter++;
         }
     });
+    console.log(`Keys: ${idToIndex}`);
+    console.log(`Data: ${subredditContent}`);
     // TODO: set up buttons on top menu bar to interact with content player
     // hide subreddits sidebar and show content sidebar
     $('#subredditList').sidebar('hide');
@@ -93,21 +116,44 @@ function addSubredditButtonHandlers() {
     });
 }
 
-function playItem(youtubeID) {
-    setCurrentVideo(youtubeID);
-    $('#postTitle').html(`Post Title: ${subredditContent[youtubeID].postTitle}`);
-    $('#postAuthor').html(`Posted by: /u/${subredditContent[youtubeID].author}`);
-    $('#postScore').html(`Post score: ${subredditContent[youtubeID].score}`);
+function nextSong() {
+    console.log('next song called');
+    console.log(`current index: ${currentSongIndex}`);
+    const json = require('querystring');
+    console.log(`idToIndex: ${json.stringify(idToIndex)}`);
+    if (currentSongIndex < subredditContent.length - 1) {
+        currentSongIndex++;
+        playItemAtIndex(currentSongIndex);
+    }
+}
+
+function playItemAtIndex(index) {
+    let toPlay = subredditContent[index];
+    let title = toPlay.songTitle;
+    setCurrentVideo(toPlay.youtubeID, title);
+    $('#postTitle').html(`Post Title: ${toPlay.postTitle}`);
+    $('#postAuthor').html(`Posted by: /u/${toPlay.author}`);
+    $('#postScore').html(`Post score: ${toPlay.score}`);
     // TODO: add collapsible for song info
-    $('#songArtist').html(`Artist: ${subredditContent[youtubeID].songArtist}`);
-    $('#songTitle').html(`Title: ${subredditContent[youtubeID].songTitle}`);
-    $('#songGenre').html(`Genre: ${subredditContent[youtubeID].songGenre}`);
+    $('#songArtist').html(`Artist: ${toPlay.songArtist}`);
+    $('#songTitle').html(`Title: ${title}`);
+    $('#songGenre').html(`Genre: ${toPlay.songGenre}`);
+}
+
+function playItem(youtubeID) {
+    playItemAtIndex(idToIndex[youtubeID]);
 }
 
 function playLink(e) {
     e.preventDefault();
     playItem(e.target.id);
     $('#contentPlayer').sidebar('show');
+}
+
+function initYoutube() {
+    initYoutubeAPI();
+
+    nextSongCallback = nextSong;
 }
 
 function searchSubredditHandlers() {
@@ -152,6 +198,8 @@ function topMenuHandlers() {
     $('#sortByDropdown').dropdown();
 
     $('#togglePlayPauseButton').click(togglePlayPauseClick);
+
+    $('#nextVideoButton').click(nextSong);
 }
 
 function subredditListHandlers() {
@@ -190,7 +238,7 @@ function sidebarHandlers() {
 $(function () {
     readSubreddits();
 
-    initYoutubeAPI();
+    initYoutube();
 
     addSubredditButtonHandlers();
 
