@@ -13,7 +13,6 @@ function initYoutubeAPI() {
 }
 
 function onYouTubeIframeAPIReady() {
-    console.log('onYoutubeIframeAPIReady called');
     player = new YT.Player('musicPlayer', {
         playerVars : {
             autoplay : 0,
@@ -38,8 +37,6 @@ function onError(event) {
     // same approach should work if the video has been removed (code 100)
     const redirectErrorCodes = [100, 101, 150];
     if (redirectErrorCodes.includes(event.data)) {
-        console.log('content owner requested video not be embedded');
-        // TODO: handle search
         if (currentSearchDepth < maxSearchDepth) {
             currentSearchDepth++;
             tryVideoList();
@@ -79,17 +76,12 @@ function togglePlayPause() {
 }
 
 function onPlayerReady(event) {
-    console.log('onPlayerReady called');
+    // TODO: see if anything needs to be done here
 }
 
-const playerStateNames = ['ended', 'playing', 'paused', 'buffering'];
 function onPlayerStateChange(event) {
-    // TODO: play next video in list when video ends
-    console.log('player state changed');
-    console.log(`New state = ${event.data}`);
     switch (event.data) {
         case YT.PlayerState.PLAYING:
-            console.log('Now playing');
             currentSearchDepth = 0;
             break;
         case YT.PlayerState.ENDED:
