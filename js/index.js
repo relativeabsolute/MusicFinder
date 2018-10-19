@@ -1,10 +1,9 @@
-let subreddits = [];
 let currentSongIndex = 0;
 
-function readSubreddits() {
-    let tempSubreddits = JSON.parse(window.localStorage.getItem('subreddits'));
+function initSubreddits() {
+    const tempSubreddits = getDataItem(SUBREDDITS_KEY);
     $.each(tempSubreddits, function (index, item) {
-        addSubreddit(item);
+        addSubredditHTML(item);
     });
 }
 
@@ -16,14 +15,17 @@ function addSubredditHTML(name) {
     $(`#subredditList > #${name}`).popup({hoverable: true});
 }
 
-function addSubreddit(name) {
-    subreddits.push(name);
+function newSubreddit(name) {
+    addSubreddit(name);
     // TODO: change popup to appear below item, and add subreddit info modal dialog
     addSubredditHTML(name);
 }
 
-function writeSubreddits() {
-    window.localStorage.setItem('subreddits', JSON.stringify(subreddits));
+function voteButtonClick() {
+    const match = $(this).attr('id').match(/vote(\w+):(.+)/);
+    const type = match[1];
+    const id = match[2];
+    voteSong(id, type);
 }
 
 function loadSubredditData(subredditData) {
@@ -43,13 +45,29 @@ function loadSubredditData(subredditData) {
                     playItem(obj.youtubeID);
                 }
                 // TODO: might be prettier to simply do Artist - Title
-                const newContent = `<div class='ui segment'><a id='${obj.youtubeID}'>${obj.postTitle}</a></div>`;
+                // TODO: make buttons show on right
+                const newContent = `<div class='ui segment'>
+                    <a id='${obj.youtubeID}'>${obj.postTitle}</a>
+                    <div class="ui icon buttons">
+                    <button class="ui button" id="vote${VOTE_TYPE_UP}:${obj.youtubeID}">
+                    <i class="caret up icon"></i>
+                    </button>
+                    <button class="ui button" id="vote${VOTE_TYPE_DOWN}:${obj.youtubeID}">
+                    <i class="caret down icon"></i>
+                    </button>
+                    </div>
+                    </div>`;
+                //$('.ui.segment').on('click', 'a', playLink);
                 contentPane.append(newContent);
+                //$(`#${obj.youtubeID}`).hover(postItemHover);
                 counter++;
             }
 
         }
     });
+    $('#contentPane > .ui.segment').hover(postItemHover);
+    $('#contentPane > .ui.segment > .ui.buttons').hide();
+    $('button[id^="vote"]').click(voteButtonClick);
     // TODO: set up buttons on top menu bar to interact with content player
     // hide subreddits sidebar and show content sidebar
     $('#subredditList').sidebar('hide');
@@ -66,24 +84,21 @@ function subredditMenuItemClick(e) {
 
 function subredditRemoveClick(e) {
     const id = e.target.id.match(/remove(\w+)/)[1];
-    const index = subreddits.indexOf(id);
-    subreddits.splice(index, 1);
+    removeSubreddit(id);
     $(`#${id}`).remove();
-    writeSubreddits();
 }
 
 function addSubredditButtonHandlers() {
     $('#addSubredditButton').click(function (e) {
         let search = $('#searchSubreddits');
         let val = search.search('get value');
-        addSubreddit(val);
+        newSubreddit(val);
         search.search('set value', '');
-        writeSubreddits();
     });
 }
 
 function nextSong() {
-    if (currentSongIndex < subredditContent.length - 1) {
+    if (currentSongIndex < songData.length - 1) {
         currentSongIndex++;
         playItemAtIndex(currentSongIndex);
     }
@@ -113,6 +128,14 @@ function playLink(e) {
     e.preventDefault();
     playItem(e.target.id);
     $('#contentPlayer').sidebar('show');
+}
+
+function postItemHover(e) {
+    //console.log('post item hovered');
+    //console.log(e.target);
+    let buttons = $(this).find('.ui.buttons');
+    //console.log(buttons);
+    buttons.transition('toggle');
 }
 
 function initYoutube() {
@@ -181,8 +204,8 @@ function subredditListHandlers() {
     // we need to use a delegated event handler since the element being attached to needs to
     // exist already (which must be the document)
     $(document).on('click', '[id^=remove]', subredditRemoveClick);
-    $(document).on('click', '#subredditList > .item', subredditMenuItemClick);
-    $(document).on('click', '.ui.segment > a', playLink);
+    sidebar.on('click', '.item', subredditMenuItemClick);
+    $('.ui.segment').on('click', 'a', playLink);
 }
 
 function sidebarHandlers() {
@@ -201,16 +224,11 @@ function sidebarHandlers() {
 // this gets called when the document is ready
 // attach all the event handlers and do whatever else needs to be done on startup
 $(function () {
-    readSubreddits();
-
+    initSubreddits();
     initYoutube();
-
     addSubredditButtonHandlers();
-
     searchSubredditHandlers();
-
     topMenuHandlers();
-
     sidebarHandlers();
 });
 
