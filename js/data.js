@@ -8,7 +8,7 @@ let songData = [];
 
 // object containing subreddits, likedSongs, etc
 let dataModel = {
-    likedSongs : [],
+    likedSongs : {},
     subreddits : []
 };
 
@@ -46,7 +46,6 @@ function constructPostData(itemData) {
     if (resultObject.songInfo == null) {
         return null;
     }
-    console.log(`itemData: ${JSON.stringify(itemData)}`);
     resultObject.author = itemData.data.author;
     resultObject.score = itemData.data.score;
     resultObject.subreddit = itemData.data.subreddit;
@@ -60,9 +59,17 @@ function addPostData(item) {
     if (newObject == null) {
         return null;
     }
-    idToIndex[newObject.youtubeID] = songData.length;
-    songData.push(newObject);
+    addToSongData(newObject);
     return newObject;
+}
+
+function addToSongData(songObject) {
+    idToIndex[songObject.youtubeID] = songData.length;
+    songData.push(songObject);
+}
+
+function getPostDataByID(youtubeID) {
+    return songData[idToIndex[youtubeID]];
 }
 
 function getPostData(index) {
@@ -74,14 +81,14 @@ function getPostIndexByID(youtubeID) {
 }
 
 function voteSong(youtubeID, voteType) {
-    const index = dataModel[LIKED_SONGS_KEY].indexOf(youtubeID);
-    if (index === -1 && voteType === VOTE_TYPE_UP) {
-        dataModel[LIKED_SONGS_KEY].push(youtubeID);
-        writeDataItem(LIKED_SONGS_KEY);
-    } else if (index !== -1 && voteType === VOTE_TYPE_DOWN) {
-        dataModel[LIKED_SONGS_KEY].splice(index, 1);
-        writeDataItem(LIKED_SONGS_KEY);
+    if (!dataModel[LIKED_SONGS_KEY].hasOwnProperty(youtubeID) && voteType === VOTE_TYPE_UP) {
+        let postData = getPostDataByID(youtubeID);
+        // TODO: determine if we want to store reddit info as well
+        dataModel[LIKED_SONGS_KEY][youtubeID] = postData.songInfo;
+    } else if (dataModel[LIKED_SONGS_KEY].hasOwnProperty(youtubeID) && voteType === VOTE_TYPE_DOWN) {
+        delete dataModel[LIKED_SONGS_KEY][youtubeID];
     }
+    writeDataItem(LIKED_SONGS_KEY);
 }
 
 function removeSubreddit(name) {
@@ -102,6 +109,9 @@ function writeDataItem(key) {
 }
 
 function getDataItem(key) {
-    dataModel[key] = JSON.parse(window.localStorage.getItem(key));
+    const result = JSON.parse(window.localStorage.getItem(key));
+    if (result != null && !(result.length === 0)) {
+        dataModel[key] = result;
+    }
     return dataModel[key];
 }

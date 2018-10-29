@@ -28,50 +28,76 @@ function voteButtonClick() {
     voteSong(id, type);
 }
 
-function loadSubredditData(subredditData) {
-    // TODO: filter for only youtube and other streaming sites
+function updateLikedSongs() {
+
+}
+
+function loadLikedSongs() {
+    const favorited = getDataItem(LIKED_SONGS_KEY);
+    $.each(favorited, function(index, item) {
+        console.log(`index ${index}`);
+        console.log(`item ${item}`);
+        addToSongData(item);
+    });
+    setContentPaneSource(getDataItem(LIKED_SONGS_KEY));
+}
+
+
+// expects songs in an object format, mapping youtubeID to songData
+function setContentPaneSource(songs) {
     let contentPane = $('#contentPane');
     contentPane.empty();
     let first = true;
     let counter = 0;
-    $.each(subredditData.data.children, function (index, item) {
-        // TODO: organize handlers for different domains
-        if (item.data.domain === 'youtu.be') {
-            let obj = addPostData(item);
-            if (obj != null) {
-                if (first) {
-                    first = false;
-                    currentSongIndex = counter;
-                    playItem(obj.youtubeID);
-                }
-                // TODO: might be prettier to simply do Artist - Title
-                // TODO: make buttons show on right
-                const newContent = `<div class='ui segment'>
-                    <a id='${obj.youtubeID}'>${obj.postTitle}</a>
-                    <div class="ui icon buttons">
-                    <button class="ui button" id="vote${VOTE_TYPE_UP}:${obj.youtubeID}">
-                    <i class="caret up icon"></i>
-                    </button>
-                    <button class="ui button" id="vote${VOTE_TYPE_DOWN}:${obj.youtubeID}">
-                    <i class="caret down icon"></i>
-                    </button>
-                    </div>
-                    </div>`;
-                //$('.ui.segment').on('click', 'a', playLink);
-                contentPane.append(newContent);
-                //$(`#${obj.youtubeID}`).hover(postItemHover);
-                counter++;
-            }
-
+    $.each(songs, function (index, item) {
+        if (first) {
+            first = false;
+            currentSongIndex = counter;
+            playItemAtIndex(currentSongIndex);
         }
+        // TODO: might be prettier to simply do Artist - Title
+        // TODO: make buttons show on right
+        const playID = `play${item.youtubeID}`;
+        const newContent = `<div class='ui segment'>
+            <a id='${playID}'>${item.postTitle}</a>
+            <div class="ui icon buttons">
+            <button class="ui button" id="vote${VOTE_TYPE_UP}:${item.youtubeID}">
+            <i class="caret up icon"></i>
+            </button>
+            <button class="ui button" id="vote${VOTE_TYPE_DOWN}:${item.youtubeID}">
+            <i class="caret down icon"></i>
+            </button>
+            </div>
+            </div>`;
+        contentPane.append(newContent);
+        counter++;
     });
     $('#contentPane > .ui.segment').hover(postItemHover);
     $('#contentPane > .ui.segment > .ui.buttons').hide();
     $('button[id^="vote"]').click(voteButtonClick);
     // TODO: set up buttons on top menu bar to interact with content player
     // hide subreddits sidebar and show content sidebar
-    $('#subredditList').sidebar('hide');
+    $('#listSidebar').sidebar('hide');
     $('#contentPlayer').sidebar('show');
+    $('a[id^="play"]').click(playLink);
+    //$('.ui.segment').on('click', 'a', playLink);
+
+}
+
+function loadSubredditData(subredditData) {
+    // TODO: filter for only youtube and other streaming sites
+    let contentPane = $('#contentPane');
+    contentPane.empty();
+    let first = true;
+    let counter = 0;
+    let filtered = subredditData.data.children.filter(function (elem, index, array) {
+        return elem.data.domain === 'youtu.be';
+    }).reduce(function(map, obj) {
+        let data = addPostData(obj);
+        map[data.youtubeID] = data;
+        return map;
+    }, {});
+    setContentPaneSource(filtered);
 }
 
 function subredditMenuItemClick(e) {
@@ -79,11 +105,12 @@ function subredditMenuItemClick(e) {
     let subredditName = e.target.id;
     let targetURL = `https://www.reddit.com/r/${subredditName}.json`;
     // TODO: set loading indicator
+    // TODO: use semantic API features to clean this up
     $.get(targetURL, loadSubredditData);
 }
 
 function subredditRemoveClick(e) {
-    const id = e.target.id.match(/remove(\w+)/)[1];
+    const id = e.target.id.match(/remove(.+)/)[1];
     removeSubreddit(id);
     $(`#${id}`).remove();
 }
@@ -121,12 +148,17 @@ function playItemAtIndex(index) {
 }
 
 function playItem(youtubeID) {
-    playItemAtIndex(getPostIndexByID(youtubeID));
+    console.log(`youtubeID: ${JSON.stringify(youtubeID)}`);
+    let index = getPostIndexByID(youtubeID);
+    console.log(`index: ${index}`);
+    playItemAtIndex(index);
 }
 
 function playLink(e) {
     e.preventDefault();
-    playItem(e.target.id);
+    const id = e.target.id.match(/play(.+)/)[1];
+    console.log(`id ${id}`);
+    playItem(id);
     $('#contentPlayer').sidebar('show');
 }
 
@@ -167,7 +199,7 @@ function searchSubredditHandlers() {
 function updateSidebarButton() {
     const elements = ["<i class='angle left icon'></i>Hide Subreddits</a>",
         "<i class='angle right icon'></i>Show Subreddits"];
-    const sidebarVisible = $('#subredditList').sidebar('is visible');
+    const sidebarVisible = $('#listSidebar').sidebar('is visible');
     $('#toggleSidebar').html(elements[+sidebarVisible]);
 }
 
@@ -180,7 +212,7 @@ function togglePlayPauseClick() {
 // event handlers for the menu across the top
 function topMenuHandlers() {
     $('#toggleSidebar').click(function () {
-        $('#subredditList').sidebar('toggle');
+        $('#listSidebar').sidebar('toggle');
     });
 
     $('#sortByDropdown').dropdown();
@@ -191,7 +223,7 @@ function topMenuHandlers() {
 }
 
 function subredditListHandlers() {
-    let sidebar = $('#subredditList');
+    let sidebar = $('#listSidebar');
     sidebar.sidebar({
         context: $('.bottom.segment'),
         exclusive: false,
@@ -205,7 +237,7 @@ function subredditListHandlers() {
     // exist already (which must be the document)
     $(document).on('click', '[id^=remove]', subredditRemoveClick);
     sidebar.on('click', '.item', subredditMenuItemClick);
-    $('.ui.segment').on('click', 'a', playLink);
+    $('#likedSongs').click(loadLikedSongs);
 }
 
 function sidebarHandlers() {
