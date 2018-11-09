@@ -13,6 +13,8 @@ function addSubredditHTML(name) {
     const menuItem = `<a class='item' id='${name}' data-html="${removeButton}">${name}</a>`;
     $('#subredditList').append(menuItem);
     $(`#subredditList > #${name}`).popup({hoverable: true});
+    $(`#${name}`).click(subredditMenuItemClick);
+    $(`#${removeID}`).click(subredditRemoveClick);
 }
 
 function newSubreddit(name) {
@@ -35,15 +37,13 @@ function updateLikedSongs() {
 function loadLikedSongs() {
     const favorited = getDataItem(LIKED_SONGS_KEY);
     $.each(favorited, function(index, item) {
-        console.log(`index ${index}`);
-        console.log(`item ${item}`);
         addToSongData(item);
     });
-    setContentPaneSource(getDataItem(LIKED_SONGS_KEY));
+    setContentPaneSource(favorited);
 }
 
 
-// expects songs in an object format, mapping youtubeID to songData
+// expects songs in an array format
 function setContentPaneSource(songs) {
     let contentPane = $('#contentPane');
     contentPane.empty();
@@ -59,7 +59,7 @@ function setContentPaneSource(songs) {
         // TODO: make buttons show on right
         const playID = `play${item.youtubeID}`;
         const newContent = `<div class='ui segment'>
-            <a id='${playID}'>${item.postTitle}</a>
+            <a id='${playID}'>${item.title}</a>
             <div class="ui icon buttons">
             <button class="ui button" id="vote${VOTE_TYPE_UP}:${item.youtubeID}">
             <i class="caret up icon"></i>
@@ -124,6 +124,13 @@ function addSubredditButtonHandlers() {
     });
 }
 
+function prevSong() {
+    if (currentSongIndex > 0) {
+        currentSongIndex--;
+        playItemAtIndex(currentSongIndex);
+    }
+}
+
 function nextSong() {
     if (currentSongIndex < songData.length - 1) {
         currentSongIndex++;
@@ -133,40 +140,32 @@ function nextSong() {
 
 function playItemAtIndex(index) {
     let toPlay = getPostData(index);
-    console.log(toPlay);
-    let title = `${toPlay.songInfo.songArtist} - ${toPlay.songInfo.songTitle}`;
-    console.log(`title is ${title}`);
+    let title = `${toPlay.songData.artist} - ${toPlay.songData.title}`;
     setCurrentVideo(toPlay.youtubeID, title);
-    $('#postTitle').html(`Post Title: ${toPlay.postTitle}`);
+    $('#postTitle').html(`Post Title: ${toPlay.title}`);
     $('#postAuthor').html(`Posted by: /u/${toPlay.author}`);
     $('#postScore').html(`Post score: ${toPlay.score}`);
     // TODO: add collapsible for song info
-    $('#songArtist').html(`Artist: ${toPlay.songInfo.songArtist}`);
-    $('#songTitle').html(`Title: ${toPlay.songInfo.songTitle}`);
+    $('#songArtist').html(`Artist: ${toPlay.songData.artist}`);
+    $('#songTitle').html(`Title: ${toPlay.songData.title}`);
     // TODO: may not want to include genre (not every subreddit has it)
-    $('#songGenre').html(`Genre: ${toPlay.songInfo.songGenre}`);
+    $('#songGenre').html(`Genre: ${toPlay.songData.genre}`);
 }
 
 function playItem(youtubeID) {
-    console.log(`youtubeID: ${JSON.stringify(youtubeID)}`);
     let index = getPostIndexByID(youtubeID);
-    console.log(`index: ${index}`);
     playItemAtIndex(index);
 }
 
 function playLink(e) {
     e.preventDefault();
     const id = e.target.id.match(/play(.+)/)[1];
-    console.log(`id ${id}`);
     playItem(id);
     $('#contentPlayer').sidebar('show');
 }
 
 function postItemHover(e) {
-    //console.log('post item hovered');
-    //console.log(e.target);
     let buttons = $(this).find('.ui.buttons');
-    //console.log(buttons);
     buttons.transition('toggle');
 }
 
@@ -183,8 +182,9 @@ function searchSubredditHandlers() {
                 let response = {
                     results: []
                 };
+                items = getDataItem(SUBREDDITS_KEY);
                 $.each(redditResponse.names, function (index, item) {
-                    if (!subreddits.includes(item)) {
+                    if (!items.includes(item)) {
                         response.results.push({title: item})
                     }
                 });
@@ -219,6 +219,7 @@ function topMenuHandlers() {
 
     $('#togglePlayPauseButton').click(togglePlayPauseClick);
 
+    $('#previousVideoButton').click(prevSong);
     $('#nextVideoButton').click(nextSong);
 }
 
@@ -233,10 +234,7 @@ function subredditListHandlers() {
         dimPage: false,
         transition: 'overlay'
     });
-    // we need to use a delegated event handler since the element being attached to needs to
-    // exist already (which must be the document)
-    $(document).on('click', '[id^=remove]', subredditRemoveClick);
-    sidebar.on('click', '.item', subredditMenuItemClick);
+
     $('#likedSongs').click(loadLikedSongs);
 }
 

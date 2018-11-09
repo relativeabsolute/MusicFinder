@@ -2,13 +2,13 @@
 
 let idToIndex = {};
 
-// this contains meta data related to each song
+// result contains meta data related to each song
 // some data comes from reddit, and also whether the user has liked the song
 let songData = [];
 
 // object containing subreddits, likedSongs, etc
 let dataModel = {
-    likedSongs : {},
+    likedSongs : [],
     subreddits : []
 };
 
@@ -18,45 +18,49 @@ const SUBREDDITS_KEY = "subreddits";
 const VOTE_TYPE_UP = 'up';
 const VOTE_TYPE_DOWN = 'down';
 
-// returns object containing title and artist
-function getSongInfo(postTitle) {
-    // TODO: use named capture groups
-    const array = postTitle.match(/([^\[(]+)-([^\[(]+)(\[.+])?(\(.+\))?/);
+// TODO: implement playback queue, separate from song data and likedSongs
 
+function _songDataFromPostTitle(title) {
+    const array = title.match(/([^\[(]+)-([^\[(]+)(\[.+])?(\(.+\))?/);
     if (array == null) {
         return null;
     } else {
-        let resultObj = {};
-        resultObj.songTitle = array[2].trim();
-        resultObj.songArtist = array[1].trim();
+        let genre = '';
         if (array[3] != null) {
-            resultObj.songGenre = array[3].trim();
-        } else {
-            resultObj.songGenre = '';
+            genre = array[3].trim();
         }
-        return resultObj;
+        return SongData(array[2].trim(), array[1].trim(), genre);
     }
 }
 
-function constructPostData(itemData) {
-    let resultObject = {};
-    let postTitle = itemData.data.title;
-    resultObject.postTitle = postTitle;
-    resultObject.songInfo = getSongInfo(postTitle);
-    if (resultObject.songInfo == null) {
-        return null;
-    }
-    resultObject.author = itemData.data.author;
-    resultObject.score = itemData.data.score;
-    resultObject.subreddit = itemData.data.subreddit;
-    // TODO: allow for different handlers based on url
-    resultObject.youtubeID = itemData.data.url.match(/youtu.be\/(.+)/)[1];
-    return resultObject;
+function PostData(title, author, score, subreddit, youtubeID) {
+    let result = {};
+    result.title = title;
+    result.author = author;
+    result.score = score;
+    result.subreddit = subreddit;
+    result.youtubeID = youtubeID;
+    result.songData = _songDataFromPostTitle(title);
+    return result
+}
+
+function SongData(title, artist, genre) {
+    let result = {};
+    result.title = title;
+    result.artist = artist;
+    result.genre = genre;
+    return result;
+}
+
+function _postDataFromSubredditData(itemData) {
+    return PostData(itemData.data.title, itemData.data.author,
+        itemData.data.score, itemData.data.subreddit,
+        itemData.data.url.match(/youtu.be\/(.+)/)[1]);
 }
 
 function addPostData(item) {
-    let newObject = constructPostData(item);
-    if (newObject == null) {
+    let newObject = _postDataFromSubredditData(item);
+    if (newObject.songData == null) {
         return null;
     }
     addToSongData(newObject);
@@ -81,18 +85,27 @@ function getPostIndexByID(youtubeID) {
 }
 
 function voteSong(youtubeID, voteType) {
-    if (!dataModel[LIKED_SONGS_KEY].hasOwnProperty(youtubeID) && voteType === VOTE_TYPE_UP) {
+    let findYoutubeID = (item) => { return item.youtubeID === youtubeID };
+    index = dataModel[LIKED_SONGS_KEY].findIndex(findYoutubeID);
+    if (index === -1 && voteType === VOTE_TYPE_UP) {
+        let postData = getPostDataByID(youtubeID);
+        // TODO: determine if we want to store reddit info as well
+        dataModel[LIKED_SONGS_KEY].push(postData);
+    } else if (index !== -1 && voteType === VOTE_TYPE_DOWN) {
+        dataModel[LIKED_SONGS_KEY].splice(index, 1);
+    }
+    /*if (!dataModel[LIKED_SONGS_KEY].hasOwnProperty(youtubeID) && voteType === VOTE_TYPE_UP) {
         let postData = getPostDataByID(youtubeID);
         // TODO: determine if we want to store reddit info as well
         dataModel[LIKED_SONGS_KEY][youtubeID] = postData.songInfo;
     } else if (dataModel[LIKED_SONGS_KEY].hasOwnProperty(youtubeID) && voteType === VOTE_TYPE_DOWN) {
         delete dataModel[LIKED_SONGS_KEY][youtubeID];
-    }
+    }*/
     writeDataItem(LIKED_SONGS_KEY);
 }
 
 function removeSubreddit(name) {
-    const index = subreddits.indexOf(name);
+    const index = dataModel[SUBREDDITS_KEY].indexOf(name);
     if (index !== -1) {
         dataModel[SUBREDDITS_KEY].splice(index, 1);
         writeDataItem(SUBREDDITS_KEY);
